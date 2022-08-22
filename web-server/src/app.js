@@ -1,6 +1,8 @@
 const path = require('path')
 const express = require('express')
 const hbs = require('hbs')
+const {getCoordinates} = require('../utils/getCoordinates')
+const {getWeatherByCoordinates} = require('../utils/getWeatherByCoordinates')
 
 const app = express()
 
@@ -18,50 +20,82 @@ hbs.registerPartials(partialsPath)
 app.use(express.static(publicDirectoryPath))
 
 app.get('', (req, res) => {
-    res.render('index', {
-        title: 'Weather',
-        name: 'Andrew Mead'
-    })
+  res.render('index', {
+    title: 'Weather',
+    name: 'Andrew Mead'
+  })
 })
 
 app.get('/about', (req, res) => {
-    res.render('about', {
-        title: 'About Me',
-        name: 'Andrew Mead'
-    })
+  res.render('about', {
+    title: 'About Me',
+    name: 'Andrew Mead'
+  })
 })
 
 app.get('/help', (req, res) => {
-    res.render('help', {
-        helpText: 'This is some helpful text.',
-        title: 'Help',
-        name: 'Andrew Mead'
-    })
+  res.render('help', {
+    helpText: 'This is some helpful text.',
+    title: 'Help',
+    name: 'Andrew Mead'
+  })
 })
 
 app.get('/weather', (req, res) => {
+  if (!req.query.address) {
     res.send({
-        forecast: 'It is snowing',
-        location: 'Philadelphia'
+      error: 'An Address must be provided'
+    });
+    return;
+  }
+  getCoordinates(req.query.address, (error, {
+    latitude,
+    longitude,
+    location
+  } = {}) => {
+    if (error) {
+      res.send({
+        error: 'Error retrieving coordinates'
+      })
+      return;
+    }
+    getWeatherByCoordinates(latitude, longitude, (error, {
+      temperature,
+      feelsLikeTemperature,
+      description
+    }) => {
+      if (error) {
+        res.send({
+          error: 'Error retrieving temperature'
+        })
+        return;
+      }
+      res.send({
+        temperature,
+        feelsLikeTemperature,
+        description,
+        location
+      })
     })
+  })
 })
 
 app.get('/help/*', (req, res) => {
-    res.render('404', {
-        title: '404',
-        name: 'Andrew Mead',
-        errorMessage: 'Help article not found.'
-    })
+  res.render('404', {
+    title: '404',
+    name: 'Andrew Mead',
+    errorMessage: 'Help article not found.'
+  })
 })
 
 app.get('*', (req, res) => {
-    res.render('404', {
-        title: '404',
-        name: 'Andrew Mead',
-        errorMessage: 'Page not found.'
-    })
+  res.render('404', {
+    title: '404',
+    name: 'Andrew Mead',
+    errorMessage: 'Page not found.'
+  })
 })
 
 app.listen(3000, () => {
-    console.log('Server is up on port 3000.')
+  console.log('Server is up on port 3000.')
 })
